@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imagination Canvas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style for the definition area for a smoother, memory-like transition */
+        #definition-area {
+            /* Increased duration and changed easing for a smoother effect */
+            transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+            opacity: 0;
+            transform: translateY(15px); /* Start slightly lower for a more noticeable drift */
+        }
+        #definition-area.visible {
+            opacity: 1;
+            transform: translateY(0); /* Move to original position */
+        }
+        /* Style for clickable words */
+        .word-span {
+            cursor: pointer;
+            position: relative;
+            display: inline-block; /* Ensures proper spacing and hover effect */
+        }
+        .word-span:hover::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: currentColor;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 flex items-center justify-center min-h-screen">
+
+    <!-- Main container for the application -->
+    <div class="text-center p-8 w-full max-w-4xl">
+
+        <!-- Container for the generated phrase -->
+        <div id="phrase-container" class="mb-12 min-h-[5rem] flex items-center justify-center">
+            <h1 class="text-3xl md:text-5xl lg:text-6xl font-light tracking-wider leading-tight">
+                <!-- The generated phrase will be injected here by JavaScript -->
+            </h1>
+        </div>
+
+        <!-- Button to generate a new phrase -->
+        <button id="generate-button" class="bg-white text-stone-700 font-medium py-3 px-8 rounded-full shadow-sm border border-stone-200 hover:bg-stone-100 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-400 focus:ring-offset-stone-50 transition-all duration-200 ease-in-out">
+            Imagine
+        </button>
+
+        <!-- Definition Area - Styles are now blended with the page -->
+        <div id="definition-area" class="w-full max-w-2xl mx-auto mt-12 text-left">
+            <!-- Definition will be injected here -->
+        </div>
+
+    </div>
+
+    <script>
+        // --- Word List ---
+        const nouns = ['Actor', 'Artist', 'Astronaut', 'Athlete', 'Author', 'Baby', 'Baker', 'Barber', 'Boy', 'Butcher', 
+    'Carpenter', 'Cashier', 'Chef', 'Child', 'Clerk', 'Clown', 'Coach', 'Cook', 'Dancer', 'Dentist', 
+    'Doctor', 'Editor', 'Electrician', 'Engineer', 'Farmer', 'Firefighter', 'Friend', 'Girl', 'Guard', 
+    'Guide', 'Historian', 'Inventor', 'Janitor', 'Judge', 'Lawyer', 'Librarian', 'Man', 'Mechanic', 
+    'Musician', 'Neighbor', 'Nurse', 'Painter', 'Parent', 'Pharmacist', 'Pilot', 'Plumber', 'Police officer', 
+    'Politician', 'Professor', 'Sailor', 'Scientist', 'Singer', 'Soldier', 'Student', 'Surgeon', 'Teacher', 
+    'Technician', 'Tourist', 'Veterinarian', 'Waiter', 'Woman', 'Worker', 'Writer', 'Alligator', 'Ant', 
+    'Bear', 'Bee', 'Bird', 'Bull', 'Butterfly', 'Camel', 'Cat', 'Chicken', 'Cow', 'Crab', 'Crocodile', 
+    'Deer', 'Dog', 'Dolphin', 'Donkey', 'Duck', 'Eagle', 'Elephant', 'Fish', 'Fly', 'Fox', 'Frog', 
+    'Giraffe', 'Goat', 'Goose', 'Gorilla', 'Hamster', 'Horse', 'Insect', 'Kangaroo', 'Lion', 'Lizard', 
+    'Monkey', 'Mouse', 'Octopus', 'Owl', 'Panda', 'Parrot', 'Penguin', 'Pig', 'Rabbit', 'Rat', 
+    'Scorpion', 'Seal', 'Shark', 'Sheep', 'Shrimp', 'Snake', 'Spider', 'Squirrel', 'Tiger', 'Turkey', 
+    'Turtle', 'Whale', 'Wolf', 'Zebra', 'Airport', 'Alley', 'Bank', 'Barn', 'Bathroom', 'Beach', 
+    'Bedroom', 'Building', 'Canyon', 'Capital', 'Castle', 'Cave', 'City', 'Clinic', 'Cliff', 'Coast', 
+    'Continent', 'Country', 'Court', 'Desert', 'Downtown', 'Earth', 'Estuary', 'Factory', 'Farm', 
+    'Field', 'Forest', 'Garage', 'Garden', 'Harbor', 'Hill', 'Home', 'Hospital', 'House', 'Island', 
+    'Jungle', 'Kitchen', 'Lake', 'Land', 'Library', 'Market', 'Mountain', 'Museum', 'Nation', 'Ocean', 
+    'Office', 'Park', 'Planet', 'Prison', 'Province', 'Restaurant', 'River', 'Road', 'School', 'Sea', 
+    'Stadium', 'State', 'Station', 'Street', 'Suburb', 'Town', 'University', 'Valley', 'Village', 
+    'Volcano', 'Waterfall', 'World', 'Zoo', 'Archipelago', 'Badlands', 'Basin', 'Bay', 'Bluff', 'Bog', 
+    'Brook', 'Cape', 'Cavern', 'Channel', 'Cove', 'Crater', 'Creek', 'Delta', 'Dune', 'Falls', 'Fjord', 
+    'Geyser', 'Glacier', 'Glade', 'Glen', 'Gorge', 'Grove', 'Gulf', 'Heath', 'Highland', 'Iceberg', 
+    'Isle', 'Isthmus', 'Knoll', 'Lagoon', 'Lowland', 'Marsh', 'Meadow', 'Mesa', 'Moor', 'Peninsula', 
+    'Plain', 'Prairie', 'Pond', 'Rainforest', 'Ravine', 'Reef', 'Reservoir', 'Rock', 'Savanna', 'Shore', 
+    'Spring', 'Strait', 'Stream', 'Summit', 'Swamp', 'Taiga', 'Terrain', 'Tundra', 'Wilderness', 'Woods', 
+    'Abbey', 'Amphitheater', 'Aquarium', 'Arcade', 'Arena', 'Asylum', 'Auditorium', 'Barracks', 'Bazaar', 
+    'Brewery', 'Bridge', 'Bunker', 'Cabin', 'Cathedral', 'Chapel', 'Church', 'Cinema', 'Circus', 'Citadel', 
+    'Club', 'College', 'Colosseum', 'Complex', 'Conservatory', 'Courthouse', 'Dam', 'Depot', 'Distillery', 
+    'Dock', 'Dome', 'Dormitory', 'Elevator', 'Embassy', 'Escalator', 'Ferry', 'Fort', 'Fortress', 
+    'Foundry', 'Granary', 'Greenhouse', 'Gym', 'Hangar', 'Hostel', 'Hotel', 'Hut', 'Laboratory', 
+    'Landfill', 'Lighthouse', 'Lodge', 'Mall', 'Mansion', 'Mausoleum', 'Mill', 'Mine', 'Monastery', 
+    'Monument', 'Mosque', 'Motel', 'Observatory', 'Opera house', 'Orchard', 'Palace', 'Parking lot', 
+    'Parliament', 'Pavilion', 'Pier', 'Plant', 'Pyramid', 'Quarry', 'Ranch', 'Resort', 'Ruin', 
+    'Sanitarium', 'Skyscraper', 'Store', 'Studio', 'Supermarket', 'Synagogue', 'Temple', 'Terminal', 
+    'Theater', 'Tower', 'Tunnel', 'Vault', 'Venue', 'Warehouse', 'Wharf', 'Windmill', 'Winery', 
+    'Border', 'Commonwealth', 'Community', 'County', 'District', 'Domain', 'Duchy', 'Empire', 'Estate', 
+    'Hamlet', 'Kingdom', 'Metropolis', 'Neighborhood', 'Realm', 'Region', 'Republic', 'Settlement', 
+    'Territory', 'Township', 'Aisle', 'Attic', 'Balcony', 'Basement', 'Boardroom', 'Box office', 
+    'Cafeteria', 'Carport', 'Cellar', 'Closet', 'Cockpit', 'Corner', 'Corridor', 'Cubicle', 'Den', 
+    'Dining room', 'Driveway', 'Entryway', 'Floor', 'Foyer', 'Hall', 'Hallway', 'Landing', 'Lobby', 
+    'Loft', 'Lounge', 'Nursery', 'Pantry', 'Parlor', 'Patio', 'Platform', 'Porch', 'Reception', 'Room', 
+    'Sanctuary', 'Showroom', 'Staircase', 'Storeroom', 'Study', 'Suite', 'Terrace', 'Vestibule', 
+    'Waiting room', 'Wardrobe', 'Workshop', 'Almond', 'Apple', 'Bacon', 'Banana', 'Bean', 'Bread', 
+    'Broccoli', 'Butter', 'Cabbage', 'Cake', 'Candy', 'Carrot', 'Cereal', 'Cheese', 'Cherry', 
+    'Chocolate', 'Coffee', 'Cookie', 'Corn', 'Cream', 'Cucumber', 'Juice', 'Lettuce', 'Meat', 'Milk', 
+    'Mushroom', 'Noodle', 'Nut', 'Oil', 'Onion', 'Orange', 'Pancake', 'Pasta', 'Pepper', 'Pie', 'Pizza', 
+    'Potato', 'Rice', 'Salad', 'Salt', 'Sandwich', 'Sauce', 'Soup', 'Spice', 'Steak', 'Sugar', 'Tea', 
+    'Toast', 'Tomato', 'Water', 'Yogurt', 'Air', 'Atmosphere', 'Avalanche', 'Blizzard', 'Branch', 
+    'Cloud', 'Darkness', 'Dew', 'Dirt', 'Dust', 'Earthquake', 'Energy', 'Fire', 'Flower', 'Fog', 
+    'Grass', 'Ground', 'Hurricane', 'Ice', 'Lava', 'Light', 'Lightning', 'Moon', 'Mud', 'Nature', 
+    'Pebble', 'Puddle', 'Rainbow', 'Rain', 'Riverbed', 'Root', 'Rose', 'Sand', 'Sky', 'Smoke', 'Snow', 
+    'Soil', 'Star', 'Steam', 'Stone', 'Storm', 'Sun', 'Sunshine', 'Thunder', 'Tornado', 'Tree', 'Vine', 
+    'Wave', 'Weather', 'Wind', 'Airplane', 'Ambulance', 'Automobile', 'Bicycle', 'Boat', 'Bus', 
+    'Canoe', 'Car', 'Carriage', 'Helicopter', 'Highway', 'Jet', 'Motorcycle', 'Pickup', 'Raft', 
+    'Railroad', 'Railway', 'Scooter', 'Ship', 'Streetcar', 'Subway', 'Taxi', 'Train', 'Truck', 'Van', 
+    'Vehicle', 'Wagon', 'Yacht', 'Buggy', 'Cab', 'Chariot', 'Convertible', 'Coupe', 'Hatchback', 'Jeep', 
+    'Limousine', 'Microbus', 'Minibus', 'Minivan', 'Moped', 'Sedan', 'Station wagon', 'Suv', 
+    'Armored car', 'Bulldozer', 'Camper', 'Cement mixer', 'Combine', 'Dump truck', 'Fire engine', 
+    'Forklift', 'Garbage truck', 'Golf cart', 'Grader', 'Hearse', 'Lorry', 'Pickup truck', 'Rig', 
+    'Roadster', 'Semi-trailer', 'Snowplow', 'Tanker', 'Tractor', 'Tractor-trailer', 'Trailer', 'Boxcar', 
+    'Cable car', 'Caboose', 'Cart', 'Engine', 'Freight train', 'Funicular', 'Handcar', 'Locomotive', 
+    'Monorail', 'Passenger train', 'Railcar', 'Tram', 'Trolley', 'Bike', 'Dogsled', 'Gocart', 
+    'Longboard', 'Mountain bike', 'Pushcart', 'Rickshaw', 'Rollerblade', 'Skateboard', 'Sled', 
+    'Sleigh', 'Tandem', 'Tricycle', 'Unicycle', 'Wheelchair', 'Aircraft', 'Airship', 'Balloon', 
+    'Biplane', 'Blimp', 'Bomber', 'Cargo plane', 'Chopper', 'Drone', 'Fighter jet', 'Glider', 
+    'Hang glider', 'Hot-air balloon', 'Jetliner', 'Jumbo jet', 'Plane', 'Seaplane', 'Spacecraft', 
+    'Zeppelin', 'Barge', 'Cargo ship', 'Catamaran', 'Cruiser', 'Cruise ship', 'Destroyer', 'Dinghy', 
+    'Dredger', 'Fishing boat', 'Freighter', 'Galley', 'Gondola', 'Houseboat', 'Hovercraft', 'Hydrofoil', 
+    'Icebreaker', 'Jet ski', 'Kayak', 'Lifeboat', 'Liner', 'Motorboat', 'Oil tanker', 'Paddleboat', 
+    'Pontoon', 'Powerboat', 'Rowboat', 'Sailboat', 'Schooner', 'Speedboat', 'Steamboat', 'Submarine', 
+    'Trawler', 'Tugboat', 'Vessel', 'Capsule', 'Command module', 'Lander', 'Rocket', 'Rocket ship', 
+    'Rover', 'Satellite', 'Shuttle', 'Spaceship', 'Advantage', 'Adventure', 'Anger', 'Beauty', 'Belief', 
+    'Chaos', 'Comfort', 'Communication', 'Concept', 'Confidence', 'Courage', 'Crime', 'Culture', 
+    'Curiosity', 'Danger', 'Death', 'Defeat', 'Democracy', 'Depression', 'Design', 'Despair', 'Dream', 
+    'Duty', 'Education', 'Evil', 'Failure', 'Faith', 'Fear', 'Freedom', 'Friendship', 'Future', 'Goal', 
+    'Good', 'Happiness', 'Hate', 'Hope', 'Horror', 'Idea', 'Imagination', 'Intelligence', 'Joy', 
+    'Justice', 'Knowledge', 'Laughter', 'Liberty', 'Life', 'Logic', 'Loss', 'Love', 'Luck', 'Memory', 
+    'Mercy', 'Misery', 'Motivation', 'Opinion', 'Opportunity', 'Pain', 'Past', 'Patience', 'Peace', 
+    'Pleasure', 'Power', 'Problem', 'Progress', 'Purpose', 'Reality', 'Reason', 'Relationship', 
+    'Relaxation', 'Religion', 'Sadness', 'Satisfaction', 'Skill', 'Sleep', 'Sorrow', 'Soul', 'Speed', 
+    'Strength', 'Success', 'Talent', 'Theory', 'Thought', 'Time', 'Trust', 'Truth', 'Victory', 'War', 
+    'Wealth', 'Wisdom', 'Adoration', 'Agitation', 'Agony', 'Alarm', 'Amazement', 'Anguish', 'Annoyance', 
+    'Anxiety', 'Awe', 'Bliss', 'Boredom', 'Calm', 'Charity', 'Cheerfulness', 'Compassion', 'Contentment', 
+    'Delight', 'Desire', 'Disappointment', 'Disgust', 'Doubt', 'Ecstasy', 'Elation', 'Embarrassment', 
+    'Empathy', 'Enchantment', 'Enjoyment', 'Enthusiasm', 'Envy', 'Euphoria', 'Excitement', 'Fondness', 
+    'Frustration', 'Fury', 'Gloom', 'Gratitude', 'Grief', 'Guilt', 'Homesickness', 'Hostility', 
+    'Humiliation', 'Hysteria', 'Infatuation', 'Insecurity', 'Irritation', 'Jealousy', 'Jubilation', 
+    'Loneliness', 'Melancholy', 'Nostalgia', 'Optimism', 'Panic', 'Passion', 'Pity', 'Pride', 'Rage', 
+    'Regret', 'Relief', 'Remorse', 'Shame', 'Shock', 'Surprise', 'Sympathy', 'Tenderness', 'Terror', 
+    'Thrill', 'Torment', 'Uneasiness', 'Woe', 'Wonder', 'Worry', 'Zeal', 'Accuracy', 'Altruism', 
+    'Ambition', 'Arrogance', 'Audacity', 'Benevolence', 'Belligerence', 'Bigotry', 'Bravery', 'Brilliance', 
+    'Brutality', 'Candor', 'Capability', 'Charisma', 'Clarity', 'Cleverness', 'Cowardice', 'Cruelty', 
+    'Cunning', 'Deceit', 'Dedication', 'Deftness', 'Dexterity', 'Diligence', 'Ego', 'Elegance', 'Eloquence', 
+    'Excellence', 'Falsehood', 'Generosity', 'Greed', 'Grace', 'Honesty', 'Honor', 'Humility', 'Hypocrisy', 
+    'Ignorance', 'Infamy', 'Integrity', 'Intolerance', 'Kindness', 'Loyalty', 'Luxury', 'Maturity', 
+    'Nonchalance', 'Obedience', 'Vanity', 'Patriotism', 'Persistence', 'Piety', 'Piousness', 'Pomposity', 
+    'Purity', 'Restraint', 'Sanctity', 'Sanity', 'Sarcasm', 'Self-control', 'Service', 'Sloth', 
+    'Sobriety', 'Sophistication', 'Stinginess', 'Stoicism', 'Stubbornness', 'Tolerance', 'Treachery', 
+    'Valor', 'Velocity', 'Virtue', 'Weakness', 'Wickedness', 'Wit', 'Afterlife', 'Capitalism', 'Career', 
+    'Cause', 'Chance', 'Classicism', 'Communism', 'Conclusion', 'Consequence', 'Conservatism', 
+    'Creativity', 'Data', 'Destiny', 'Determination', 'Discovery', 'Economics', 'Effect', 'Evidence', 
+    'Evolution', 'Fact', 'Fantasy', 'Fascism', 'Fate', 'Federalism', 'Feminism', 'Fiction', 'Fortune', 
+    'Gossip', 'Harmony', 'Hint', 'Humor', 'Hypothesis', 'Ideology', 'Illusion', 'Information', 
+    'Intellect', 'Irony', 'Joke', 'Journalism', 'Law', 'Meaning', 'Method', 'Mystery', 'Narrative', 
+    'Philosophy', 'Plan', 'Principle', 'Proof', 'Propaganda', 'Result', 'Rumor', 'Science', 'Secret', 
+    'Socialism', 'Speculation', 'Strategy', 'Subject', 'System', 'Understanding', 'Adulthood', 'Age', 
+    'Anarchy', 'Balance', 'Bankruptcy', 'Beginning', 'Birthday', 'Bondage', 'Boyhood', 'Brunch', 
+    'Childhood', 'Circumstance', 'Climax', 'Confusion', 'Damnation', 'Desolation', 'Desperation', 
+    'Disorder', 'Divorce', 'Drama', 'Duration', 'Dynasty', 'Ease', 'End', 'Equality', 'Equilibrium', 
+    'Era', 'Existence', 'Fame', 'Fashion', 'Flux', 'Fun', 'Gain', 'Girlhood', 'Hunger', 'Infancy', 
+    'Inflation', 'Insanity', 'Jeopardy', 'Leisure', 'Marriage', 'Matrimony', 'Middle age', 'Moment', 
+    'Necessity', 'Occasion', 'Old age', 'Penalty', 'Poverty', 'Pressure', 'Privacy', 'Prosperity', 
+    'Puberty', 'Punishment', 'Retirement', 'Rule', 'Safety', 'Situation', 'Solitude', 'Status', 'Tension', 
+    'Turmoil', 'Work', 'Backpack', 'Ball', 'Barrel', 'Basket', 'Battery', 'Bed', 'Bell', 'Blanket', 
+    'Bolt', 'Bottle', 'Box', 'Broom', 'Brush', 'Bucket', 'Bulb', 'Button', 'Camera', 'Candle', 'Can', 
+    'Card', 'Key', 'Knife', 'Ladder', 'Lamp', 'Lock', 'Machine', 'Magazine', 'Mirror', 'Mop', 'Motor', 
+    'Nail', 'Needle', 'Network', 'Notebook', 'Oven', 'Pan', 'Paper', 'Pen', 'Pencil', 'Phone', 'Picture', 
+    'Pillow', 'Pin', 'Pipe', 'Plate', 'Pliers', 'Pot', 'Purse', 'Racket', 'Radio', 'Refrigerator', 
+    'Remote', 'Rope', 'Rug', 'Scissors', 'Screw', 'Shelf', 'Shovel', 'Soap', 'Sofa', 'Stereo', 'Stove', 
+    'Switch', 'Table', 'Television', 'Tent', 'Tire', 'Toaster', 'Toilet', 'Tool', 'Toothbrush', 'Towel', 
+    'Toy', 'Umbrella', 'Wallet', 'Watch', 'Wheel', 'Window', 'Wire', 'Blender', 'Bowl', 'Can opener', 
+    'Carafe', 'Colander', 'Corkscrew', 'Counter', 'Cup', 'Cupboard', 'Cutting board', 'Dishwasher', 
+    'Fork', 'Freezer', 'Fridge', 'Frying pan', 'Glass', 'Grater', 'Grill', 'Jar', 'Jug', 'Kettle', 
+    'Ladle', 'Microwave', 'Mixer', 'Mug', 'Napkin', 'Peeler', 'Platter', 'Rolling pin', 'Saucer', 
+    'Skillet', 'Spatula', 'Spoon', 'Teapot', 'Tongs', 'Tray', 'Whisk', 'Anchor', 'Anvil', 'Axe', 'Bellows', 
+    'Bit', 'Blade', 'Brace', 'Clamp', 'Clippers', 'Crowbar', 'Drill', 'File', 'Funnel', 'Gear', 'Glue', 
+    'Hammer', 'Hinge', 'Hoe', 'Hook', 'Jack', 'Lathe', 'Level', 'Mallet', 'Pulley', 'Pump', 'Rake', 
+    'Rasp', 'Rivet', 'Ruler', 'Sander', 'Saw', 'Scale', 'Screwdriver', 'Socket', 'Spade', 'Square', 
+    'Staple', 'Tape measure', 'Toolbox', 'Trowel', 'Vise', 'Wedge', 'Wheelbarrow', 'Wrench', 'Binder', 
+    'Blackboard', 'Book', 'Calculator', 'Calendar', 'Chalk', 'Clipboard', 'Compass', 'Computer', 
+    'Crayon', 'Eraser', 'Envelope', 'Folder', 'Glue stick', 'Highlighter', 'Hole punch', 'Index card', 
+    'Ink', 'Laptop', 'Letter', 'Marker', 'Monitor', 'Pad', 'Paint', 'Paperclip', 'Printer', 'Protractor', 
+    'Pushpin', 'Rubber band', 'Scanner', 'Stapler', 'Sticky note', 'Tape', 'Textbook', 'Thumbtack', 
+    'Barrette', 'Belt', 'Cane', 'Glasses', 'Comb', 'Cotton ball', 'Floss', 'Hairpin', 'Handbag', 'Jewelry', 
+    'Lipstick', 'Lotion', 'Luggage', 'Makeup', 'Money', 'Nail file', 'Perfume', 'Pocket', 'Razor', 'Ribbon', 
+    'Ring', 'Suitcase', 'Sunglasses', 'Toothpaste', 'Tweezers', 'Zipper', 'Adapter', 'Amplifier', 'Cable', 
+    'Charger', 'Controller', 'Dvd player', 'Earbuds', 'Gadget', 'Headphones', 'Keyboard', 'Modem', 
+    'Microphone', 'Plug', 'Remote control', 'Router', 'Speaker', 'Tablet', 'Telephone', 'Transformer', 
+    'Usb drive']        
+        // --- Application Logic ---
+
+        // DOM element references
+        const phraseContainer = document.getElementById('phrase-container').querySelector('h1');
+        const generateButton = document.getElementById('generate-button');
+        const definitionArea = document.getElementById('definition-area');
+        
+        /**
+         * Selects a random element from a given array.
+         */
+        function getRandomElement(arr) {
+            if (!arr || arr.length === 0) {
+                console.error("The 'nouns' array is empty.");
+                return "[error]";
+            }
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        /**
+         * Hides the definition area.
+         */
+        function hideDefinition() {
+            definitionArea.classList.remove('visible');
+            // We can clear the content after the transition for a smoother effect
+            setTimeout(() => {
+                if (!definitionArea.classList.contains('visible')) {
+                    definitionArea.innerHTML = '';
+                }
+            }, 700); // Match the new 0.7s transition
+        }
+
+        /**
+         * Fetches and displays the definition of a word.
+         * @param {string} word - The word to look up.
+         */
+        async function fetchAndShowDefinition(word) {
+            // Set loading state and make the area visible
+            definitionArea.innerHTML = `<p class="text-stone-500">Loading definition for <strong>${word}</strong>...</p>`;
+            definitionArea.classList.add('visible');
+
+            try {
+                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+                if (!response.ok) {
+                    throw new Error('Definition not found.');
+                }
+                const data = await response.json();
+                
+                // Extract the first meaning and its first definition
+                const meaning = data[0].meanings[0];
+                const definition = meaning.definitions[0];
+
+                let html = `
+                    <h3 class="text-xl font-bold mb-2">${data[0].word}</h3>
+                    <p class="text-stone-500 italic mb-4">${meaning.partOfSpeech}</p>
+                    <p class="text-stone-700">${definition.definition}</p>
+                `;
+
+                if (definition.example) {
+                    html += `<p class="text-stone-500 mt-4 text-sm"><em>e.g., "${definition.example}"</em></p>`;
+                }
+
+                definitionArea.innerHTML = html;
+
+            } catch (error) {
+                definitionArea.innerHTML = `<p class="text-red-600">Sorry, we couldn't find a definition for <strong>${word}</strong>.</p>`;
+                console.error("Dictionary API error:", error);
+            }
+        }
+
+
+        /**
+         * Generates a new phrase of three clickable nouns.
+         */
+        function generateAndDisplayPhrase() {
+            // Hide any previous definition
+            hideDefinition();
+
+            // Clear previous phrase
+            phraseContainer.innerHTML = '';
+
+            const words = [getRandomElement(nouns), getRandomElement(nouns), getRandomElement(nouns)];
+
+            words.forEach((word, index) => {
+                const wordSpan = document.createElement('span');
+                wordSpan.textContent = word;
+                wordSpan.className = 'word-span px-2'; // Added padding for better spacing
+                wordSpan.onclick = () => fetchAndShowDefinition(word);
+                phraseContainer.appendChild(wordSpan);
+
+                // Add separator
+                if (index < words.length - 1) {
+                    const separator = document.createTextNode(' ');
+                    phraseContainer.appendChild(separator);
+                }
+            });
+        }
+        
+        // --- Initialization ---
+        
+        // Event listener for the generate button
+        generateButton.addEventListener('click', generateAndDisplayPhrase);
+
+        // Generate the first phrase when the page loads
+        generateAndDisplayPhrase();
+
+    </script>
+
+</body>
+</html>
