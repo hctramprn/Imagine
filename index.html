@@ -116,22 +116,31 @@
         }
 
         /**
-         * Fetches an adjective that is commonly used to describe a given noun.
-         * @param {string} noun - The noun to find an adjective for.
-         * @returns {Promise<string>} A promise that resolves to an adjective.
+         * Fetches a random noun related to a "problem" from the Datamuse API.
+         * @returns {Promise<string>} A promise that resolves to a problem-related noun.
          */
-        async function getAdjectiveForNoun(noun) {
+        async function getRandomProblemWord() {
+            // A curated list of seed words to get problem-related nouns
+            const problemTopics = ['crisis', 'hunger', 'conflict', 'disaster', 'poverty', 'pollution', 'disease', 'theft', 'war', 'fear', 'shortage', 'failure', 'corruption', 'addiction', 'injustice', 'inequality', 'anxiety', 'isolation', 'grief', 'chaos', 'betrayal', 'collapse', 'drought', 'famine', 'debt', 'unemployment', 'extinction', 'censorship', 'propaganda', 'tyranny', 'oppression', 'apathy', 'neglect', 'waste'];
+            const randomTopic = problemTopics[Math.floor(Math.random() * problemTopics.length)];
+
             try {
-                const response = await fetch(`https://api.datamuse.com/words?rel_jjb=${noun}&max=50`);
+                // Using 'ml' (means like) gives good results for this specific case
+                const response = await fetch(`https://api.datamuse.com/words?ml=${randomTopic}&md=p&max=100`);
                 const data = await response.json();
-                if (data.length === 0) {
-                    console.warn(`No adjectives found for "${noun}", using a fallback.`);
-                    return "mysterious"; // A fallback adjective
+                
+                // We want nouns specifically
+                const filteredWords = data.filter(item => item.tags && item.tags.includes('n'));
+                
+                if (filteredWords.length === 0) {
+                    console.warn(`No problem words found for topic '${randomTopic}', returning fallback.`);
+                    return randomTopic; // Return the topic itself as a fallback
                 }
-                return data[Math.floor(Math.random() * data.length)].word;
+                
+                return filteredWords[Math.floor(Math.random() * filteredWords.length)].word;
             } catch (error) {
-                console.error("Error fetching adjective:", error);
-                return "mysterious"; // A fallback on network error
+                console.error("Datamuse API error (problem word):", error);
+                return "struggle"; // A generic fallback
             }
         }
 
@@ -199,17 +208,15 @@
             showLoadingState();
 
             try {
-                // Step 1: Fetch a random noun and a random verb concurrently.
-                const [baseNoun, randomVerb] = await Promise.all([
+                // New structure: Fetch a random Noun, a random Verb, and a random Problem Noun concurrently.
+                const [randomNoun, randomVerb, problemNoun] = await Promise.all([
                     getRandomWordFromApi('n'),
-                    getRandomWordFromApi('v')
+                    getRandomWordFromApi('v'),
+                    getRandomProblemWord() // The new function call
                 ]);
 
-                // Step 2: Fetch an adjective related to the noun we just got.
-                const adjective = await getAdjectiveForNoun(baseNoun);
-
-                // The final phrase structure: Adjective + Noun + Verb
-                const words = [adjective, baseNoun, randomVerb];
+                // The final phrase structure: Noun + Verb + Problem Noun
+                const words = [randomNoun, randomVerb, problemNoun];
 
                 // Clear loading state and display the phrase
                 phraseContainer.innerHTML = ''; 
